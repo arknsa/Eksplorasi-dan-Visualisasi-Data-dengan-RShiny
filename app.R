@@ -39,7 +39,7 @@ loginUI <- fluidPage(
         justify-content: center; 
         align-items: center;
         text-align: center; 
-        background-image: url('https://drive.google.com/uc?export=view&id=1zQmzKWuswTqLyvu8KE1J5SV7FTziSJLy');
+        background-image: url('https://github.com/arknsa/image/blob/main/cover_rshiny_desktop.png?raw=true');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
