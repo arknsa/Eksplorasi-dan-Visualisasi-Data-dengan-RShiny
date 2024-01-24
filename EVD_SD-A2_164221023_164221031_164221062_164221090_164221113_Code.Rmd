@@ -1,0 +1,666 @@
+---
+title: "UAS_EVD_KELOMPOK 9"
+author: "Kelompok 9"
+date: "2023-12-21"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r, warning=FALSE}
+setwd("C:/Users/acer/Documents/KULIAHHH/smt 3/Eksplorasi dan Visualisasi Data/Project UAS EVD")
+```
+
+# Memanggil Library
+```{r, warning=FALSE}
+library(reshape2)
+library(readxl)
+library(DescTools)
+library(nonpar)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(VIM)
+library(MASS)
+library(corrplot)
+library(shiny)
+library(shinydashboard)
+library(plotly)
+library(shinyjs)
+library(DT)
+library(profvis)
+library(RColorBrewer)
+library(robustbase)
+library(lmtest)
+library(car)
+```
+
+# Preprocessing Data
+## Subset Data
+### Unduh Data Dibawah Ini :
+[Data Kelompok 9](https://docs.google.com/spreadsheets/d/1m0bccEFecACPFuXrjINGP7Zhtpq8m6jL/edit?usp=sharing&ouid=112286042528992115933&rtpof=true&sd=true)
+```{r, warning=FALSE}
+data1 = read_excel("pemilu_evd.xlsx")
+data1 
+```
+
+### Menampilkan Struktur Data 
+```{r, warning=FALSE}
+str(data1)
+```
+
+### Rangkuman Data
+```{r, warning=FALSE}
+# Membuat Dataframe
+data_penelitian <- data.frame(
+  Variabel = c("Umur", "Jenis_Kelamin", "Angkatan", "Pemahaman", "Akademis", "Diskusi", "Kepercayaan", "Hubungan", "Aktivitas", "Sumber_Informasi", "Keterlibatan"),
+  Tipe.Data = c("Numerik", "Kategorik", "Kategorik", "Numerik", "Numerik", "Numerik", "Numerik", "Numerik", "Numerik", "Kategorik", "Numerik"),
+  Keterangan = c("Usia responden (dalam tahun)", "Jenis kelamin responden (Laki-Laki dan Perempuan)", "Nama angkatan responden (Euclid, Archimedes, Devaskara, dan Vidyadatum)", "Seberapa besar tingkat pemahaman responden terhadap pemilu  (1-10)", "Seberapa besar pengaruh masa pemilu terhadap keseharian akademis mahasiswa TSD (1-10)", "Seberapa sering responden terlibat diskusi politik dengan teman-teman  (1-10)", "Seberapa besar tingkat kepercayaan informasi politik yang responden peroleh selama masa pemilu 2024 (1-10)", "Seberapa besar pengaruh masa pemilu terhadap hubungan pertemanan responden  (1-10)", "Sejauh mana responden merasa perlu melibatkan diri dalam aktivitas politik sebagai mahasiswa TSD (1-10)", "Dari mana responden mendapatkan informasi tentang pemilu (TV, Berita Digital, Media Sosial, dan Koran)", "Sejauh mana responden terlibat dalam proses Pemilu 2024 (1-10)")
+)
+
+# Menampilkan Dataframe
+print(data_penelitian)
+```
+
+```{r, warning=FALSE}
+summary(data1)
+```
+### Perhitungan Statistika Deskriptif
+```{r, warning=FALSE}
+statistika_deskriptif <- function(data) {
+# Mendapatkan hanya kolom-kolom numerik
+kolom_numerik <- data[, sapply(data, is.numeric)]
+# Inisialisasi vektor kosong untuk menyimpan hasil perhitungan
+variables <- names(kolom_numerik)
+means <- medians <- q1s <- q3s <- variances <- sds <- ranges <- sums <- mins <- maxs <- numeric(length(variables))
+# Loop untuk setiap variabel numerik
+for (i in seq_along(variables)) {
+  variable <- variables[i]
+  values <- kolom_numerik[[variable]]
+# Hitung statistika deskriptif
+  means[i] <- mean(values)
+  medians[i] <- median(values)
+  q1s[i] <- quantile(values, 0.25)
+  q3s[i] <- quantile(values, 0.75)
+  variances[i] <- var(values)
+  sds[i] <- sd(values)
+  ranges[i] <- max(values) - min(values)
+  sums[i] <- sum(values)
+  mins[i] <- min(values)
+  maxs[i] <- max(values)
+}
+
+hasil <- data.frame(Variabel = variables, Mean = means, Median = medians, Q1 = q1s, Q3 = q3s, Variance = variances, SD = sds, Range = ranges, Sum = sums, Min = mins, Max = maxs, stringsAsFactors = FALSE)
+
+return(hasil)
+}
+```
+
+## Statistika Deskriptif
+```{r, warning=FALSE}
+data1_num <- data1[, !(names(data1) %in% c("Angkatan", "Sumber_Informasi", "Jenis_Kelamin"))]
+print(statistika_deskriptif(data1_num))
+```
+
+## Pengecekan Missing Values
+```{r, warning=FALSE}
+# Menampilkan jumlah missing values per kolom secara terperinci
+colSums(is.na(data1))
+```
+## Pengecekan Missing Values Menggunakan Visualisasi 
+```{r, warning=FALSE}
+#Visualisasi NA (missing values) 
+aggr_plot <- aggr(data1, col=c('skyblue','black'), numbers=TRUE,
+ sortVars=TRUE, labels=names(data1), cex.axis=.7,
+ gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+
+## Pengecekan Outlier
+```{r, warning=FALSE}
+variables_to_check <- c("Umur", "Pemahaman", "Akademis","Diskusi","Keterlibatan", "Kepercayaan", "Hubungan", "Aktivitas")
+```
+
+### Menggunakan Visualisasi Box Plot
+```{r, warning=FALSE}
+# Mengambil hanya variabel numerik
+numeric_vars <- sapply(data1, is.numeric)
+
+# Mendapatkan nama kolom variabel numerik
+numeric_columns <- names(data1)[numeric_vars]
+
+# Membuat boxplot untuk setiap variabel numerik
+par(mfrow=c(1, length(numeric_columns)), mar=c(4, 4, 2, 1))
+
+for (col in numeric_columns) {
+  boxplot(data1[[col]], main=col, col="skyblue", border="black", notch=FALSE)
+}
+```
+
+### Menggunakan Grubbs' Test
+```{r, warning=FALSE}
+# Fungsi Grubbs' Test untuk Multiple Variables dengan Kesimpulan berdasarkan p-value
+grubbs_test_multiple_with_pvalue_summary <- function(data, variables, alpha = 0.05) {
+  results <- list()
+
+  for (variable in variables) {
+    # Mendapatkan panjang sampel
+    n <- length(data[[variable]])
+    
+    # Menghitung mean dan standard deviation
+    mean_val <- mean(data[[variable]])
+    sd_val <- sd(data[[variable]])
+    
+    # Menghitung Z-score untuk nilai terbesar
+    z_max <- (max(data[[variable]]) - mean_val) / sd_val
+    
+    # Menghitung Z-score untuk nilai terkecil
+    z_min <- (min(data[[variable]]) - mean_val) / sd_val
+    
+    # Menghitung critical value dari tabel distribusi t
+    critical_value <- qt(1 - alpha / (2 * n), df = n - 2)
+    
+    # Menghitung Grubbs' Statistic
+    G_max <- z_max / sqrt(1 - (1 / (2 * n)))
+    G_min <- z_min / sqrt(1 - (1 / (2 * n)))
+    
+    # Menghitung p-value untuk Grubbs' Test
+    p_value_max <- 2 * pt(-abs(G_max), df = n - 2)
+    p_value_min <- 2 * pt(-abs(G_min), df = n - 2)
+    
+    # Menentukan apakah nilai maksimum atau minimum adalah outlier berdasarkan p-value
+    max_outlier <- ifelse(p_value_max < alpha, max(data[[variable]]), NA)
+    min_outlier <- ifelse(p_value_min < alpha, min(data[[variable]]), NA)
+    
+    # Menyimpan hasil Grubbs' Test untuk variabel tertentu
+    result <- list(
+      Variable = variable,
+      G_max = G_max,
+      p_value_max = p_value_max,
+      max_outlier = max_outlier,
+      G_min = G_min,
+      p_value_min = p_value_min,
+      min_outlier = min_outlier
+    )
+    
+    # Menyimpan kesimpulan Grubbs' Test berdasarkan p-value
+    conclusion_max <- ifelse(p_value_max < alpha,
+                             "Dikarenakan p-value < alpha (0.05), maka keputusan yang didapat adalah Tolak (H0), dapat disimpulkan bahwa terdapat setidaknya satu nilai yang merupakan outlier pada variabel ini.",
+                             "Dikarenakan p-value >= alpha (0.05), maka keputusan yang didapat adalah Gagal Tolak (H0), dapat disimpulkan bahwa tidak terdapat outlier pada variabel ini.")
+    
+    conclusion_min <- ifelse(p_value_min < alpha,
+                             "Dikarenakan p-value < alpha (0.05), maka keputusan yang didapat adalah Tolak (H0), dapat disimpulkan bahwa terdapat setidaknya satu nilai yang merupakan outlier pada variabel ini.",
+                             "Dikarenakan p-value >= alpha (0.05), maka keputusan yang didapat adalah Gagal Tolak (H0), dapat disimpulkan bahwa tidak terdapat outlier pada variabel ini.")
+    
+    result$Conclusion_max <- conclusion_max
+    result$Conclusion_min <- conclusion_min
+    
+    results[[variable]] <- result
+  }
+
+  return(results)
+}
+
+# Contoh penggunaan Grubbs' Test untuk Multiple Variables dengan Kesimpulan berdasarkan p-value
+results_multiple_grubbs_pvalue <- grubbs_test_multiple_with_pvalue_summary(data1, variables_to_check)
+
+# Menampilkan kesimpulan Grubbs' Test (berdasarkan p-value) untuk setiap variabel
+for (result in results_multiple_grubbs_pvalue) {
+  cat("Variable:", result$Variable, "\n")
+  cat("Conclusion (Max):", result$Conclusion_max, "\n")
+  cat("Conclusion (Min):", result$Conclusion_min, "\n\n")
+}
+```
+### Leverage Test
+```{r, warning=FALSE}
+# Fungsi Leverage Test untuk Multiple Variables dengan Kesimpulan
+leverage_test_multiple_with_summary <- function(data, variables, alpha = 0.05) {
+  results <- list()
+
+  for (variable in variables) {
+    # Mendapatkan panjang sampel
+    n <- length(data[[variable]])
+
+    # Menghitung mean dan standard deviation
+    mean_val <- mean(data[[variable]])
+    sd_val <- sd(data[[variable]])
+
+    # Menghitung leverage statistic
+    leverage_stat <- (data[[variable]] - mean_val) / sd_val
+
+    # Menghitung critical value dari tabel distribusi t
+    critical_value <- qt(1 - alpha / (2 * n), df = n - 2)
+
+    # Menghitung critical leverage value
+    critical_leverage <- sqrt((n - 1) / (n - critical_value^2))
+
+    # Menentukan apakah nilai leverage melebihi nilai kritis
+    outlier_values <- ifelse(abs(leverage_stat) > critical_leverage, data[[variable]], NA)
+
+    # Menyimpan hasil Leverage Test untuk variabel tertentu
+    result <- list(
+      Variable = variable,
+      Leverage_Stat = leverage_stat,
+      Outlier_Values = outlier_values,
+      Critical_Leverage = critical_leverage
+    )
+
+    # Menyimpan kesimpulan Leverage Test
+    conclusion <- ifelse(any(abs(leverage_stat) > critical_leverage),
+                         "Dikarenakan Ada Setidaknya Satu Nilai Leverage yang Melebihi Nilai Kritis, Maka Keputusan yang Didapat adalah Tolak (H0), Dapat Disimpulkan bahwa Terdapat Setidaknya Satu Nilai yang Merupakan Pencilan pada Variabel Ini.",
+                         "Dikarenakan Tidak Ada Nilai Leverage yang Melebihi Nilai Kritis, Maka Keputusan yang Didapat adalah Gagal Tolak (H0), Dapat Disimpulkan bahwa Tidak Terdapat Pencilan pada Variabel Ini.")
+
+    result$Conclusion <- conclusion
+
+    results[[variable]] <- result
+  }
+
+  return(results)
+}
+
+# Contoh penggunaan Leverage Test untuk Multiple Variables dengan Kesimpulan
+results_multiple_leverage <- leverage_test_multiple_with_summary(data1, variables_to_check)
+
+# Menampilkan kesimpulan Leverage Test untuk setiap variabel
+for (result in results_multiple_leverage) {
+  cat("Variable:", result$Variable, "\n")
+  cat("Conclusion:", result$Conclusion, "\n\n")
+}
+
+```
+
+### Cook's Distance Test
+```{r, warning=FALSE}
+# Fungsi Cook's Distance Test untuk Multiple Variables dengan Kesimpulan
+cooks_distance_test_multiple_with_summary <- function(data, variables, alpha = 0.05) {
+  results <- list()
+
+  for (variable in variables) {
+    # Mendapatkan panjang sampel
+    n <- length(data[[variable]])
+
+    # Menghitung mean dan standard deviation
+    mean_val <- mean(data[[variable]])
+    sd_val <- sd(data[[variable]])
+
+    # Menghitung Cook's Distance
+    model <- lm(data[[variable]] ~ 1)
+    cooks_distance <- cooks.distance(model)
+
+    # Menghitung critical value dari tabel distribusi F
+    critical_value <- qf(1 - alpha, df1 = 1, df2 = n - 2)
+
+    # Menentukan apakah nilai Cook's Distance melebihi nilai kritis
+    outlier_values <- ifelse(cooks_distance > critical_value, data[[variable]], NA)
+
+    # Menyimpan hasil Cook's Distance Test untuk variabel tertentu
+    result <- list(
+      Variable = variable,
+      Cooks_Distance = cooks_distance,
+      Outlier_Values = outlier_values,
+      Critical_Value = critical_value
+    )
+
+    # Menyimpan kesimpulan Cook's Distance Test
+    conclusion <- ifelse(any(abs(cooks_distance) > critical_value),
+                         "Dikarenakan Ada Setidaknya Satu Nilai Cook's Distance yang Melebihi Nilai Kritis, Maka Keputusan yang Didapat adalah Tolak (H0), Dapat Disimpulkan bahwa Terdapat Setidaknya Satu Nilai yang Merupakan Pencilan pada Variabel Ini.", "Dikarenakan Tidak Ada Nilai Cook's Distance yang Melebihi Nilai Kritis, Maka Keputusan yang Didapat adalah Gagal Tolak (H0), Dapat Disimpulkan bahwa Tidak Terdapat Pencilan pada Variabel Ini.")
+
+    result$Conclusion <- conclusion
+
+    results[[variable]] <- result
+  }
+
+  return(results)
+}
+
+# Contoh penggunaan Cook's Distance Test untuk Multiple Variables dengan Kesimpulan
+results_multiple_cooks_distance <- cooks_distance_test_multiple_with_summary(data1, variables_to_check)
+
+# Menampilkan kesimpulan Cook's Distance Test untuk setiap variabel
+for (result in results_multiple_cooks_distance) {
+  cat("Variable:", result$Variable, "\n")
+  cat("Conclusion:", result$Conclusion, "\n\n")
+}
+```
+
+## Penanganan Outlier dengan Menghapus Outlier
+```{r, warning=FALSE}
+remove_outliers_iqr <- function(data, variables, threshold = 1.5) {
+  for (variable in variables) {
+    q1 <- quantile(data[[variable]], 0.25)
+    q3 <- quantile(data[[variable]], 0.75)
+    iqr <- q3 - q1
+    lower_bound <- q1 - threshold * iqr
+    upper_bound <- q3 + threshold * iqr
+    data <- data[data[[variable]] >= lower_bound & data[[variable]] <= upper_bound, ]
+}
+return(data)
+}
+datafix <- remove_outliers_iqr(data1, variables_to_check)
+datafix
+```
+
+## Pengecekan Outlier setelah Ditangani
+```{r, warning=FALSE}
+# Mengambil hanya variabel numerik
+numeric_vars <- sapply(datafix, is.numeric)
+
+# Mendapatkan nama kolom variabel numerik
+numeric_columns <- names(datafix)[numeric_vars]
+
+# Membuat boxplot untuk setiap variabel numerik
+par(mfrow=c(1, length(numeric_columns)), mar=c(4, 4, 2, 1))
+
+for (col in numeric_columns) {
+  boxplot(datafix[[col]], main=col, col="skyblue", border="black", notch=FALSE)
+}
+```
+
+## Transformasi Data
+### Encoding Data
+```{r, warning=FALSE}
+# One-hot encoding menggunakan model.matrix
+datafix_encoded0 <- data.frame(model.matrix(~ . -1, data = datafix))
+datafix_encoded <- datafix_encoded0[, !(names(datafix_encoded0) %in% c("Jenis_KelaminPerempuan"))]
+
+# Menampilkan data frame setelah one-hot encoding
+datafix_encoded
+```
+
+## Reduksi Dimensi
+### Reduksi Dimensi dengan Backward Elimination
+```{r, warning=FALSE}
+# Memisahkan variabel independent dan dependent
+X <- datafix_encoded[, !(names(datafix_encoded) %in% c("Keterlibatan"))]
+y <- datafix_encoded$Keterlibatan
+
+# Menambahkan konstanta pada X
+X <- cbind(1, X)
+
+# Membuat model OLS awal
+initial_model <- lm(y ~ ., data = data.frame(cbind(y, X)))
+
+# Fungsi untuk melakukan backward elimination
+backward_elimination <- function(model) {
+  while (TRUE) {
+    # Mencari variabel dengan p-value tertinggi
+    p_values <- summary(model)$coefficients[-1, "Pr(>|t|)"]
+    
+    # Jika tidak ada variabel dengan p-value lebih besar dari 0.05, maka keluar dari loop
+    if (all(p_values <= 0.05)) {
+      break
+    }
+    
+    # Jika variabel dengan p-value tertinggi memiliki p-value lebih besar dari 0.05, maka hapus variabel tersebut
+    feature_with_max_pvalue <- names(p_values)[which.max(p_values)]
+    X <- X[, !(names(X) %in% c(feature_with_max_pvalue))]
+    model <- lm(y ~ ., data = data.frame(cbind(y, X)))
+    print(paste('Variables: ', names(X), '| Adj R-Squared: ', summary(model)$adj.r.squared))
+  }
+  return(model)
+}
+
+# Melakukan backward elimination
+final_model <- backward_elimination(initial_model)
+```
+
+### Data Setelah Dilakukan Reduksi Dimensi
+```{r, warning=FALSE}
+data_akhir <- datafix_encoded[, !(names(datafix_encoded) %in% c("Umur", "AngkatanEuclid", "Diskusi", "Aktivitas", "Sumber_InformasiMedia.Sosial"))]
+data_akhir
+```
+
+### Statistika Deskriptif
+```{r, warning=FALSE}
+data_akhir_num <- datafix[, !(names(datafix) %in% c("Umur", "Angkatan", "Diskusi", "Aktivitas", "Sumber_Informasi", "Jenis_Kelamin"))]
+print(statistika_deskriptif(data_akhir_num))
+```
+
+# Visualisasi Data
+### Membuat Variabel Kolom untuk Visualisasi
+```{r, warning=FALSE}
+kolom <- c('Pemahaman', 'Akademis',  'Kepercayaan', "Hubungan")
+kolom2 <- c('Jenis_KelaminLaki.Laki','Pemahaman', 'Akademis',  'Kepercayaan', "Hubungan", "Sumber_InformasiTV")
+kolom3 <- c('Pemahaman', 'Akademis',  'Kepercayaan', "Hubungan", "Keterlibatan")
+```
+
+## Heatmap 
+```{r, warning=FALSE}
+# Menghitung matriks korelasi
+correlation_matrix <- cor(data_akhir)
+
+# Membuat plot heatmap korelasi dengan bentuk segitiga
+ggplot(data = melt(correlation_matrix, na.rm = TRUE), aes(Var2, Var1, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  scale_fill_distiller(palette = "Blues") +
+  labs(title = "Heatmap Korelasi Antar Variabel") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 0, hjust = 1))
+```
+
+## Pie Chart
+```{r, warning=FALSE}
+# Membuat Pie Chart
+# Mengatur layout
+# Membuat layout grid untuk pie charts
+par(mfrow=c(2, 3), mar=c(4, 4, 2, 1))
+
+# Iterasi untuk membuat pie chart untuk setiap kolom
+for (col in kolom2) {
+  # Menghitung frekuensi masing-masing nilai dalam kolom
+  value_counts <- table(data_akhir[[col]])
+
+  # Menghitung persentase
+  percentages <- round((value_counts / sum(value_counts)) * 100, 1)
+
+  # Membuat label dengan persentase
+  labels <- paste(names(value_counts), ": ", percentages, "%")
+
+  # Membuat warna sesuai jumlah nilai unik dalam kolom
+  colors <- brewer.pal(length(value_counts), "Blues")
+
+  # Membuat pie chart
+  pie_chart <- pie(value_counts, labels = labels, col = colors,
+                   main = paste("Pie Chart of", col))
+
+  # Menampilkan pie chart
+  pie_chart
+}
+```
+
+## Scatter Plot
+```{r, warning=FALSE}
+# Membuat Scatter Plot
+# Mengatur layout
+par(mfrow=c(1, 4), mar=c(4, 4, 2, 1))
+
+# Iterasi untuk membuat scatter plot untuk setiap kolom
+for (col in kolom) {
+  plot(data_akhir[[col]], data_akhir$Keterlibatan, col="darkblue", pch=16, main=paste(col, "vs Keterlibatan"), xlab=col, ylab="Keterlibatan")
+}
+```
+
+## Histogram dan Density Plot
+```{r, warning=FALSE}
+# Membuat Histogram with Density Line
+# Mengatur layout
+plots_list <- list()
+for (col in kolom3) {
+  density_values <- density(data_akhir[[col]])
+    # Buat histogram dengan garis densitas
+    hist_plot <- plot_ly() %>%
+      add_trace(x = data_akhir[[col]], 
+                type = "histogram", 
+                histnorm = "probability", 
+                nbinsy = 30,  # Jumlah bins untuk sumbu y
+                marker = list(color = "lightblue", line = list(color = "black", width = 1)), name = paste("Histogram of", col)) %>%
+      add_trace(x = density_values$x, 
+                y = density_values$y, 
+                type = "scatter", 
+                mode = "lines", 
+                line = list(color = "black", width = 2), name = paste("Density of", col))
+    # Simpan plot ke dalam list
+  plots_list[[col]] <- hist_plot
+}
+
+# Susun subplot
+subplot(plots_list, nrows = 1) %>%
+  layout(title = paste("Histogram with Density Line"),
+             yaxis = list(title = "Density dan Frekeunsi"))
+```
+
+## Box Plot
+```{r, warning=FALSE}
+# Membuat Box Plot
+# Mengatur layout
+par(mfrow=c(1, 5), mar=c(4, 4, 2, 1))
+
+# Iterasi untuk membuat boxplot untuk setiap kolom
+for (col in kolom3) {
+  boxplot(data_akhir[[col]], col="lightblue", main=paste("Boxplot of", col), ylab=col)
+}
+```
+
+# Analisis Data
+## Regresi Linier Berganda
+```{r, warning=FALSE}
+#Untuk memenuhi tujuan penelitian poin ke-1
+# Menghapus kolom 'Keterlibatan'
+x <- data_akhir[, !(names(data_akhir) %in% c('Keterlibatan'))]
+
+# Menetapkan variabel y sebagai kolom 'Keterlibatan'
+y <- data_akhir$Keterlibatan
+
+# OLS Model
+model <- lm(y ~ ., data = data.frame(cbind(y, x)))
+
+# Menampilkan ringkasan hasil regresi
+summary(model)
+```
+
+
+# Data Jika Tedapat Outlier
+```{r, warning=FALSE}
+# One-hot encoding menggunakan model.matrix
+data_encoded0 <- data.frame(model.matrix(~ . -1, data = data1))
+data_encoded1 <- data_encoded0[, !(names(data_encoded0) %in% c("Jenis_KelaminPerempuan"))]
+data_encoded1
+```
+
+
+## Robust Regression
+```{r, warning=FALSE}
+x1 <- data_encoded1 [, !(names(data_encoded1) %in% c('Keterlibatan'))]
+
+# Menetapkan variabel y sebagai kolom 'Keterlibatan'
+y1 <- data_encoded1$Keterlibatan
+
+# OLS Model
+model1 <- lm(y1 ~ ., data = data.frame(cbind(y1, x1)))
+
+# Fit robust regression model
+robust_model1 <- lmrob(y1 ~ ., data = data.frame(cbind(y1, x1)))
+
+# Print summary
+summary(robust_model1)
+```
+
+
+# Uji Asumsi
+## Normalitas
+```{r, warning=FALSE}
+# Mengambil residu dari model regresi
+residuals <- residuals(model)
+
+# Uji normalitas dengan uji Kolmogorov-Smirnov
+ks_test_result <- ks.test(residuals, "pnorm", mean = mean(residuals), sd = sd(residuals))
+
+# Menampilkan hasil uji
+print(paste("Statistic KS:", ks_test_result$statistic))
+print(paste("P-value:", ks_test_result$p.value))
+
+# Interpretasi hasil uji
+alpha <- 0.05
+if (ks_test_result$p.value > alpha) {
+  print("Data Berdistribusi Normal (Gagal Tolak H0)")
+} else {
+  print("Data Tidak Berdistribusi Normal (Tolak H0)")
+}
+```
+## Heteroskedastisitas
+```{r, warning=FALSE}
+# Prediksi
+pred_y <- predict(model, data = data.frame(cbind(y, x)))
+
+# Simpan residu
+resid <- y - pred_y
+
+# Absolut residu
+y_abs_resid <- abs(resid)
+
+data_combined <- cbind(y_abs_resid, x)
+
+# Membuat model regresi untuk residu absolut
+result_glejser <- lm(y_abs_resid ~., data = data_combined)
+
+# Uji statistik
+glejser_test_statistic <- summary(result_glejser)$fstatistic[1]
+glejser_p_values <- summary(result_glejser)$coefficients[, "Pr(>|t|)"]
+
+# Menampilkan hasil uji
+print(paste("Test Statistic Glejser:", glejser_test_statistic))
+print(paste("P-values Glejser:", glejser_p_values))
+
+# Interpretasi hasil uji
+alpha <- 0.05
+reject_h0 <- glejser_p_values < alpha
+
+# Buat data frame untuk hasil uji tiap variabel
+df_glejser <- data.frame(
+  Variabel = names(glejser_p_values),
+  P_Value = glejser_p_values,
+  Keputusan = ifelse(reject_h0, 'Tolak H0', 'Gagal Tolak H0')
+)
+
+# Print data frame
+print(df_glejser)
+```
+
+## Autokorelasi
+```{r}
+# Menghitung uji Durbin-Watson
+dw_test_result <- dwtest(model)
+
+# Menampilkan hasil uji
+print(paste("Statistic DW:", dw_test_result$statistic))
+print(paste("P-value:", dw_test_result$p.value))
+
+# Interpretasi hasil uji
+alpha <- 0.05
+if (dw_test_result$p.value > alpha) {
+  print("Tidak ada Autokorelasi (Gagal Tolak H0)")
+} else {
+  print("Ada Autokorelasi (Tolak H0)")
+}
+```
+
+## Multikolinearitas
+```{r}
+# Menghitung VIF
+vif_result <- car::vif(model)
+
+# Menampilkan hasil VIF
+print(vif_result)
+
+# Interpretasi hasil VIF
+high_vif <- vif_result[vif_result > 5]
+if (length(high_vif) > 0) {
+  print("Ada Multikolinearitas (Tolak H0)")
+} else {
+  print("Tidak ada Multikolinearitas (Gagal Tolak H0)")
+}
+```
+
