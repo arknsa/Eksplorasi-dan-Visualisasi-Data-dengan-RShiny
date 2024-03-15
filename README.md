@@ -5,10 +5,10 @@ You can see the result of my project with this link : https://arkanattaqy.shinya
 
 <p align="center">
     <kbd> <img width="750" alt="cover" src="https://github.com/arknsa/Eksplorasi-dan-Visualisasi-Data-dengan-RShiny/blob/main/preview_cover.jpg"> </kbd> <br>
-    Gambar 1 — Preview Cover RSHiny
+    Gambar 1 — Preview Cover RShiny
 </p>
 <br> <br> <br>
 <p align="center">
     <kbd> <img width="750" alt="isi" src="https://github.com/arknsa/Eksplorasi-dan-Visualisasi-Data-dengan-RShiny/blob/main/preview_isi.jpg"> </kbd> <br>
-    Gambar 2 — Preview Isi RSHiny
+    Gambar 2 — Preview Isi RShiny
 </p>
